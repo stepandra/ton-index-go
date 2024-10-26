@@ -1471,6 +1471,7 @@ func main() {
 	app.Get("/api/v3/addressBook", GetAddressBook)
 	app.Get("/api/v3/accountStates", GetAccountStates)
 	app.Get("/api/v3/walletStates", GetWalletStates)
+	app.Get("/api/v3/memepads/bondingCurve", GetV3BondingCurveStates)
 
 	// nfts
 	app.Get("/api/v3/nft/collections", GetNFTCollections)
