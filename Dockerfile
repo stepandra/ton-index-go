@@ -1,17 +1,15 @@
-FROM golang:bookworm as builder
+FROM golang:1.20-alpine as builder
 
-RUN go install github.com/swaggo/swag/cmd/swag@latest
+WORKDIR /app
+COPY . .
+RUN go build -o ton-index-go
 
-ADD index/ /go/app/index/
-ADD main.go /go/app/main.go
-ADD go.mod /go/app/go.mod
-ADD go.sum /go/app/go.sum
-RUN cd /go/app && swag init && go build -o ton-index-go ./main.go
+FROM alpine:latest
 
-FROM ubuntu:jammy
-RUN apt-get update && apt install --yes bash curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=builder /app/ton-index-go .
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
-COPY --from=builder /go/app/ton-index-go /usr/local/bin/ton-index-go
-COPY entrypoint.sh /app/entrypoint.sh
-
-ENTRYPOINT [ "/app/entrypoint.sh" ]
+EXPOSE 4100
+ENTRYPOINT ["./entrypoint.sh"]
