@@ -267,60 +267,6 @@ type Transaction struct {
 // nfts
 type JsonType map[string]interface{}
 
-type NFTCollection struct {
-	Address           AccountAddress         `json:"address"`
-	OwnerAddress      *AccountAddress        `json:"owner_address"`
-	LastTransactionLt int64                  `json:"last_transaction_lt,string"`
-	NextItemIndex     string                 `json:"next_item_index"`
-	CollectionContent map[string]interface{} `json:"collection_content"`
-	DataHash          HashType               `json:"data_hash"`
-	CodeHash          HashType               `json:"code_hash"`
-	CodeBoc           string                 `json:"-"`
-	DataBoc           string                 `json:"-"`
-} // @name NFTCollection
-
-type NFTCollectionNullable struct {
-	Address           *AccountAddress
-	OwnerAddress      *AccountAddress
-	LastTransactionLt *int64
-	NextItemIndex     *string
-	CollectionContent map[string]interface{}
-	DataHash          *HashType
-	CodeHash          *HashType
-	CodeBoc           *string
-	DataBoc           *string
-}
-
-type NFTItem struct {
-	Address           AccountAddress         `json:"address"`
-	Init              bool                   `json:"init"`
-	Index             string                 `json:"index"`
-	CollectionAddress *AccountAddress        `json:"collection_address"`
-	OwnerAddress      *AccountAddress        `json:"owner_address"`
-	Content           map[string]interface{} `json:"content"`
-	LastTransactionLt int64                  `json:"last_transaction_lt,string"`
-	CodeHash          HashType               `json:"code_hash"`
-	DataHash          HashType               `json:"data_hash"`
-	Collection        *NFTCollection         `json:"collection"`
-} // @name NFTItem
-
-type NFTTransfer struct {
-	QueryId              string          `json:"query_id"`
-	NftItemAddress       AccountAddress  `json:"nft_address"`
-	NftItemIndex         string          `json:"-"`
-	NftCollectionAddress AccountAddress  `json:"nft_collection"`
-	TransactionHash      HashType        `json:"transaction_hash"`
-	TransactionLt        int64           `json:"transaction_lt,string"`
-	TransactionNow       int64           `json:"transaction_now"`
-	TransactionAborted   bool            `json:"transaction_aborted"`
-	OldOwner             AccountAddress  `json:"old_owner"`
-	NewOwner             AccountAddress  `json:"new_owner"`
-	ResponseDestination  *AccountAddress `json:"response_destination"`
-	CustomPayload        *string         `json:"custom_payload"`
-	ForwardAmount        *string         `json:"forward_amount"`
-	ForwardPayload       *string         `json:"forward_payload"`
-	TraceId              *HashType       `json:"trace_id"`
-} // @name NFTTransfer
 
 // jettons
 type JettonMaster struct {
@@ -530,27 +476,6 @@ type ActionDetailsJettonTransfer struct {
 	ForwardAmount        *string         `json:"forward_amount"`
 }
 
-type ActionDetailsNftMint struct {
-	Owner         *AccountAddress `json:"owner,omitempty"`
-	NftItem       *AccountAddress `json:"nft_item"`
-	NftCollection *AccountAddress `json:"nft_collection"`
-	NftItemIndex  *string         `json:"nft_item_index"`
-}
-
-type ActionDetailsNftTransfer struct {
-	NftCollection       *AccountAddress `json:"nft_collection"`
-	NftItem             *AccountAddress `json:"nft_item"`
-	NftItemIndex        *string         `json:"nft_item_index"`
-	OldOwner            *AccountAddress `json:"old_owner,omitempty"`
-	NewOwner            *AccountAddress `json:"new_owner"`
-	IsPurchase          *bool           `json:"is_purchase"`
-	Price               *string         `json:"price,omitempty"`
-	QueryId             *string         `json:"query_id"`
-	ResponseDestination *AccountAddress `json:"response_destination"`
-	CustomPayload       *string         `json:"custom_payload"`
-	ForwardPayload      *string         `json:"forward_payload"`
-	ForwardAmount       *string         `json:"forward_amount"`
-}
 
 type ActionDetailsTickTock struct {
 	Account *AccountAddress `json:"account,omitempty"`
