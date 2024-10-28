@@ -1,18 +1,29 @@
 ---
 application_name: ton-index-go
 
-# ADJUST. For additional args call build/ton-index-go -help
+# Application configuration
 bind_addr: ":4100"
 pg_dsn: postgresql://localhost:5432/mainnet
-additional_args:
+additional_args: ""
 
-# deploy config
-remote_hosts: 
+# Resource limits
+memory_limit: 4G
+cpu_limit: 200%
+open_files: 65535
+max_processes: 65535
+
+# Deploy configuration  
+remote_hosts:
   - ubuntu-01
   - ubuntu-02
   - ubuntu-03
-service_user: root
-service_group: root
+
+# Service configuration
+service_user: ton-index
+service_group: ton-index
 go_binary: ton-index-go
 go_binary_path: /usr/local/bin
 systemd_service_path: /etc/systemd/system
+
+# Logging
+log_path: /var/log/ton-index

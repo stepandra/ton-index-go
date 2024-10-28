@@ -1,6 +1,7 @@
 [Unit]
 Description = "{{ application_name }} service"
-After = network.target
+After = network.target postgresql.service
+Requires = postgresql.service
 
 [Service]
 Type = simple
@@ -8,11 +9,31 @@ Restart = always
 RestartSec = 1
 ExecStart={{ go_binary_path }}/{{ go_binary }} -bind "{{ bind_addr }}" -pg {{ pg_dsn }}?application_name={{ application_name }} {{ additional_args }}
 ExecStopPost = /bin/echo "{{ application_name }} service down"
+
+# User and group
 User = {{ service_user }}
 Group = {{ service_group }}
-LimitNOFILE = infinity
-LimitNPROC = infinity
+
+# Resource limits
+LimitNOFILE = {{ open_files }}
+LimitNPROC = {{ max_processes }}
 LimitMEMLOCK = infinity
+LimitAS = {{ memory_limit }}
+CPUQuota = {{ cpu_limit }}
+
+# Runtime directory
+RuntimeDirectory = ton-index
+RuntimeDirectoryMode = 0755
+
+# Logging
+StandardOutput = append:{{ log_path }}/ton-index.log
+StandardError = append:{{ log_path }}/ton-index.error.log
+
+# Security
+NoNewPrivileges = true
+ProtectSystem = full
+ProtectHome = true
+PrivateTmp = true
 
 [Install]
 WantedBy = multi-user.target
