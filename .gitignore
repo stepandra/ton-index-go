@@ -55,3 +55,4 @@ build/
 .env.*
 .env
 ton-index-go
+.aider*

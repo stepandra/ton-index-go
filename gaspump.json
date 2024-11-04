@@ -1,0 +1,61 @@
+[
+  {
+    "interface_name": "gaspump",
+    "code_hash": [
+      "6ox2FGgwSndqH0lxBiss6BMBM2reNTNNKPu5yjNVTRc=",
+      "zHJFV4ogLC+2/uN1jCQZBs9IA3xEaUEF5kqRdWjDOlw=",
+      "epVAPFfHhSCA8fFWbj5rWnMUNwUah+hGTl0yl3+VaVg=",
+      "s8xEFRVKnzs0e0+nHdDo1N9iOmaGHMnQexA8lf1elkU=",
+      "r5eJZ7VurJARfQResj0zCr6kG6QH7tauAs0F2SGuG6U="
+    ],
+    "definitions": {
+      "deploy_and_buy_emit_event": [
+        { "name": "from", "tlb_type": "addr", "format": "addr" },
+        { "name": "input_ton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "ton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "jetton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "fee_ton_amount", "tlb_type": "coins", "format": "coins" },
+        {
+          "name": "bonding_curve_overflow",
+          "tlb_type": "bit",
+          "format": "bool"
+        }
+      ],
+      "buy_emit_event": [
+        { "name": "from", "tlb_type": "addr", "format": "addr" },
+        { "name": "input_ton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "ton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "jetton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "fee_ton_amount", "tlb_type": "coins", "format": "coins" },
+        {
+          "name": "bonding_curve_overflow",
+          "tlb_type": "bit",
+          "format": "bool"
+        }
+      ],
+      "sell_emit_event": [
+        { "name": "from", "tlb_type": "addr", "format": "addr" },
+        { "name": "ton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "jetton_amount", "tlb_type": "coins", "format": "coins" },
+        { "name": "fee_ton_amount", "tlb_type": "coins", "format": "coins" }
+      ]
+    },
+    "out_messages": [
+      {
+        "op_name": "deploy_and_buy_emit_event",
+        "op_code": "0x67617301",
+        "body": { "tlb_type": "^", "format": "deploy_and_buy_emit_event" }
+      },
+      {
+        "op_name": "buy_emit_event",
+        "op_code": "0x67617302",
+        "body": { "tlb_type": "^", "format": "buy_emit_event" }
+      },
+      {
+        "op_name": "sell_emit_event",
+        "op_code": "0x67617303",
+        "body": { "tlb_type": "^", "format": "sell_emit_event" }
+      }
+    ]
+  }
+]

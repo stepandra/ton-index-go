@@ -32,21 +32,6 @@ type WalletStatesResponse struct {
 	AddressBook AddressBook   `json:"address_book"`
 } // @name WalletStatesResponse
 
-type NFTCollectionsResponse struct {
-	Collections []NFTCollection `json:"nft_collections"`
-	AddressBook AddressBook     `json:"address_book"`
-} // @name NFTCollectionsResponse
-
-type NFTItemsResponse struct {
-	Items       []NFTItem   `json:"nft_items"`
-	AddressBook AddressBook `json:"address_book"`
-} // @name NFTItemsResponse
-
-type NFTTransfersResponse struct {
-	Transfers   []NFTTransfer `json:"nft_transfers"`
-	AddressBook AddressBook   `json:"address_book"`
-} // @name NFTTransfersResponse
-
 type JettonMastersResponse struct {
 	Masters     []JettonMaster `json:"jetton_masters"`
 	AddressBook AddressBook    `json:"address_book"`

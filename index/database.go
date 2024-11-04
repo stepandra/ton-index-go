@@ -2,8 +2,8 @@ package index
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -33,23 +33,50 @@ func NewDbClient(dsn string, maxconns int, minconns int) (*DbClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	
+	// Set reasonable defaults for external Postgres connection
 	if maxconns > 0 {
 		config.MaxConns = int32(maxconns)
+	} else {
+		config.MaxConns = 20 // Lower default for external connections
 	}
+	
 	if minconns > 0 {
 		config.MinConns = int32(minconns)
+	} else {
+		config.MinConns = 2 // Ensure we keep some connections alive
 	}
+	
+	// Increase timeouts for external connections
 	config.HealthCheckPeriod = 60 * time.Second
+	config.ConnConfig.ConnectTimeout = 10 * time.Second
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 15 * time.Minute
+	
 	config.AfterConnect = afterConnectRegisterTypes
 
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	// Add retry logic for initial connection
+	var pool *pgxpool.Pool
+	for retries := 0; retries < 5; retries++ {
+		pool, err = pgxpool.NewWithConfig(context.Background(), config)
+		if err == nil {
+			break
+		}
+		log.Printf("Failed to connect to database (attempt %d/5): %v\n", retries+1, err)
+		time.Sleep(2 * time.Second)
+	}
+	
 	if err != nil {
-		log.Fatalf("Failed to connect to database '%s': %v\n", dsn, err)
-		os.Exit(63)
+		return nil, fmt.Errorf("failed to connect to database after 5 attempts: %v", err)
 	}
-	if err = pool.Ping(context.Background()); err != nil {
-		log.Fatalf("Failed to ping to database '%s': %v\n", dsn, err)
-		os.Exit(64)
+
+	// Test the connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	if err = pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %v", err)
 	}
+
 	return &DbClient{pool}, nil
 }

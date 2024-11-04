@@ -4,8 +4,8 @@ services:
   ton-index-go:
     build: .
     ports:
-      - "4100:4100"
+      - "8000:8000"
     environment:
-      - PG_DSN=${PG_DSN}
-      - BIND_ADDR=${BIND_ADDR}
+      - PG_DSN=postgres://postgres:7eb882b8929f403c@207.188.7.112:5432/postgres
+    command: ["--pg", "postgres://postgres:7eb882b8929f403c@207.188.7.112:5432/postgres", "--bind", ":8000"]
     restart: always

@@ -396,180 +396,6 @@ func filterByArray[T any](clmn string, values []T) string {
 	return ``
 }
 
-func buildNFTCollectionsQuery(nft_req NFTCollectionRequest, lim_req LimitRequest, settings RequestSettings) (string, error) {
-	clmn_query := ` N.address, N.next_item_index, N.owner_address, N.collection_content, 
-				    N.data_hash, N.code_hash, N.last_transaction_lt`
-	from_query := ` nft_collections as N`
-	filter_list := []string{}
-	filter_query := ``
-	orderby_query := ` order by id asc`
-	limit_query, err := limitQuery(lim_req, settings)
-	if err != nil {
-		return "", err
-	}
-
-	if v := nft_req.CollectionAddress; v != nil {
-		filter_str := filterByArray("N.address", v)
-		if len(filter_str) > 0 {
-			filter_list = append(filter_list, filter_str)
-		}
-		orderby_query = ``
-	}
-	if v := nft_req.OwnerAddress; v != nil {
-		filter_str := filterByArray("N.owner_address", v)
-		if len(filter_str) > 0 {
-			filter_list = append(filter_list, filter_str)
-		}
-		orderby_query = ``
-	}
-
-	// build query
-	if len(filter_list) > 0 {
-		filter_query = ` where ` + strings.Join(filter_list, " and ")
-	}
-	query := `select` + clmn_query
-	query += ` from ` + from_query
-	query += filter_query
-	query += orderby_query
-	query += limit_query
-	return query, nil
-}
-
-func buildNFTItemsQuery(nft_req NFTItemRequest, lim_req LimitRequest, settings RequestSettings) (string, error) {
-	clmn_query := ` N.address, N.init, N.index, N.collection_address, N.owner_address, N.content, 
-					N.last_transaction_lt, N.code_hash, N.data_hash,
-					C.address, C.next_item_index, C.owner_address, C.collection_content, 
-				    C.data_hash, C.code_hash, C.last_transaction_lt`
-	from_query := ` nft_items as N left join nft_collections as C on N.collection_address = C.address`
-	filter_list := []string{}
-	filter_query := ``
-	orderby_query := ` order by N.id asc`
-	limit_query, err := limitQuery(lim_req, settings)
-	if err != nil {
-		return "", err
-	}
-
-	if v := nft_req.Address; v != nil {
-		filter_str := filterByArray("N.address", v)
-		if len(filter_str) > 0 {
-			filter_list = append(filter_list, filter_str)
-		}
-		orderby_query = ``
-	}
-	if v := nft_req.OwnerAddress; v != nil {
-		filter_str := filterByArray("N.owner_address", v)
-		if len(filter_str) > 0 {
-			filter_list = append(filter_list, filter_str)
-		}
-		orderby_query = ` order by N.owner_address, N.collection_address, N.index`
-	}
-	if v := nft_req.CollectionAddress; v != nil {
-		filter_list = append(filter_list, fmt.Sprintf("N.collection_address = '%s'", *v))
-		orderby_query = ` order by collection_address, index`
-	}
-	if v := nft_req.Index; v != nil {
-		if nft_req.CollectionAddress == nil {
-			return ``, IndexError{Code: 422, Message: "index parameter is not allowed without the collection_address"}
-		}
-		filter_str := filterByArray("N.index", v)
-		if len(filter_str) > 0 {
-			filter_list = append(filter_list, filter_str)
-		}
-	}
-
-	// build query
-	if len(filter_list) > 0 {
-		filter_query = ` where ` + strings.Join(filter_list, " and ")
-	}
-	query := `select` + clmn_query
-	query += ` from ` + from_query
-	query += filter_query
-	query += orderby_query
-	query += limit_query
-	return query, nil
-}
-
-func buildNFTTransfersQuery(transfer_req NFTTransferRequest, utime_req UtimeRequest,
-	lt_req LtRequest, lim_req LimitRequest, settings RequestSettings) (string, error) {
-	clmn_query := ` T.*`
-	from_query := ` nft_transfers as T`
-	filter_list := []string{}
-	filter_query := ``
-	orderby_query := ``
-	limit_query, err := limitQuery(lim_req, settings)
-	if err != nil {
-		return "", err
-	}
-
-	if v := transfer_req.OwnerAddress; v != nil {
-		if v1 := transfer_req.Direction; v1 != nil {
-			f_str := ``
-			if *v1 == "in" {
-				f_str = filterByArray("T.new_owner", v)
-			} else {
-				f_str = filterByArray("T.old_owner", v)
-			}
-			if len(f_str) > 0 {
-				filter_list = append(filter_list, f_str)
-			}
-		} else {
-			f1_str := filterByArray("T.old_owner", v)
-			f2_str := filterByArray("T.new_owner", v)
-			if len(f1_str) > 0 {
-				filter_list = append(filter_list, fmt.Sprintf("(%s or %s)", f1_str, f2_str))
-			}
-		}
-	}
-	if v := transfer_req.ItemAddress; v != nil {
-		filter_str := filterByArray("T.nft_item_address", v)
-		if len(filter_str) > 0 {
-			filter_list = append(filter_list, filter_str)
-		}
-	}
-	if v := transfer_req.CollectionAddress; v != nil {
-		filter_list = append(filter_list, fmt.Sprintf("T.nft_collection_address = '%s'", *v))
-	}
-
-	order_col := "T.tx_lt"
-	if v := utime_req.StartUtime; v != nil {
-		filter_list = append(filter_list, fmt.Sprintf("T.tx_now >= %d", *v))
-		order_col = "T.tx_now"
-	}
-	if v := utime_req.EndUtime; v != nil {
-		filter_list = append(filter_list, fmt.Sprintf("T.tx_now <= %d", *v))
-		order_col = "T.tx_now"
-	}
-	if v := lt_req.StartLt; v != nil {
-		filter_list = append(filter_list, fmt.Sprintf("T.tx_lt >= %d", *v))
-	}
-	if v := lt_req.EndLt; v != nil {
-		filter_list = append(filter_list, fmt.Sprintf("T.tx_lt <= %d", *v))
-	}
-	if lim_req.Sort == nil {
-		lim_req.Sort = new(SortType)
-		*lim_req.Sort = "desc"
-	}
-	if lim_req.Sort != nil {
-		sort_order, err := getSortOrder(*lim_req.Sort)
-		if err != nil {
-			return "", err
-		}
-		orderby_query = fmt.Sprintf(" order by %s %s", order_col, sort_order)
-	}
-
-	// build query
-	if len(filter_list) > 0 {
-		filter_query = ` where ` + strings.Join(filter_list, " and ")
-	}
-	query := `select` + clmn_query
-	query += ` from ` + from_query
-	query += filter_query
-	query += orderby_query
-	query += limit_query
-	// log.Println(query)
-	return query, nil
-}
-
 func buildJettonMastersQuery(jetton_req JettonMasterRequest, lim_req LimitRequest, settings RequestSettings) (string, error) {
 	clmn_query := ` J.address, J.total_supply, J.mintable, J.admin_address, J.jetton_content, 
 		J.jetton_wallet_code_hash, J.code_hash, J.data_hash, J.last_transaction_lt`
@@ -754,18 +580,13 @@ func buildActionsQuery(act_req ActionRequest, lim_req LimitRequest, settings Req
 		A.type, (A.ton_transfer_data).content, (A.ton_transfer_data).encrypted, A.value, A.amount,
 		(A.jetton_transfer_data).response_destination, (A.jetton_transfer_data).forward_amount, (A.jetton_transfer_data).query_id,
 		(A.jetton_transfer_data).custom_payload, (A.jetton_transfer_data).forward_payload, (A.jetton_transfer_data).comment,
-		(A.jetton_transfer_data).is_encrypted_comment, (A.nft_transfer_data).is_purchase, (A.nft_transfer_data).price,
-		(A.nft_transfer_data).query_id, (A.nft_transfer_data).custom_payload, (A.nft_transfer_data).forward_payload,
-		(A.nft_transfer_data).forward_amount, (A.nft_transfer_data).response_destination, (A.nft_transfer_data).nft_item_index,
-		(A.jetton_swap_data).dex, (A.jetton_swap_data).sender, ((A.jetton_swap_data).dex_incoming_transfer).amount,
+		(A.jetton_transfer_data).is_encrypted_comment,(A.jetton_swap_data).dex, (A.jetton_swap_data).sender, ((A.jetton_swap_data).dex_incoming_transfer).amount,
 		((A.jetton_swap_data).dex_incoming_transfer).asset, ((A.jetton_swap_data).dex_incoming_transfer).source,
 		((A.jetton_swap_data).dex_incoming_transfer).destination, ((A.jetton_swap_data).dex_incoming_transfer).source_jetton_wallet,
 		((A.jetton_swap_data).dex_incoming_transfer).destination_jetton_wallet, ((A.jetton_swap_data).dex_outgoing_transfer).amount,
 		((A.jetton_swap_data).dex_outgoing_transfer).asset, ((A.jetton_swap_data).dex_outgoing_transfer).source,
 		((A.jetton_swap_data).dex_outgoing_transfer).destination, ((A.jetton_swap_data).dex_outgoing_transfer).source_jetton_wallet,
-		((A.jetton_swap_data).dex_outgoing_transfer).destination_jetton_wallet, (A.jetton_swap_data).peer_swaps,
-		(A.change_dns_record_data).key, (A.change_dns_record_data).value_schema, (A.change_dns_record_data).value,
-		(A.change_dns_record_data).flags, (A.nft_mint_data).nft_item_index, A.success`
+		((A.jetton_swap_data).dex_outgoing_transfer).destination_jetton_wallet, (A.jetton_swap_data).peer_swaps, A.success`
 	from_query := `actions as A`
 	filter_list := []string{}
 	filter_query := ``
@@ -1368,91 +1189,6 @@ func queryTopAccountBalancesImpl(query string, conn *pgxpool.Conn, settings Requ
 	return acsts, nil
 }
 
-func queryNFTCollectionsImpl(query string, conn *pgxpool.Conn, settings RequestSettings) ([]NFTCollection, error) {
-	ctx, cancel_ctx := context.WithTimeout(context.Background(), settings.Timeout)
-	defer cancel_ctx()
-	rows, err := conn.Query(ctx, query)
-	if err != nil {
-		return nil, IndexError{Code: 500, Message: err.Error()}
-	}
-	// select {
-	// case <-ctx.Done():
-	// 	return nil, fmt.Errorf("query timeout %v", settings.Timeout)
-	// default:
-	// }
-	defer rows.Close()
-
-	nfts := []NFTCollection{}
-	for rows.Next() {
-		if nft, err := ScanNFTCollection(rows); err == nil {
-			nfts = append(nfts, *nft)
-		} else {
-			return nil, IndexError{Code: 500, Message: err.Error()}
-		}
-	}
-	if rows.Err() != nil {
-		return nil, IndexError{Code: 500, Message: rows.Err().Error()}
-	}
-
-	return nfts, nil
-}
-
-func queryNFTItemsWithCollectionsImpl(query string, conn *pgxpool.Conn, settings RequestSettings) ([]NFTItem, error) {
-	ctx, cancel_ctx := context.WithTimeout(context.Background(), settings.Timeout)
-	defer cancel_ctx()
-	rows, err := conn.Query(ctx, query)
-	if err != nil {
-		return nil, IndexError{Code: 500, Message: err.Error()}
-	}
-	// select {
-	// case <-ctx.Done():
-	// 	return nil, fmt.Errorf("query timeout %v", settings.Timeout)
-	// default:
-	// }
-	defer rows.Close()
-
-	nfts := []NFTItem{}
-	for rows.Next() {
-		if nft, err := ScanNFTItemWithCollection(rows); err == nil {
-			nfts = append(nfts, *nft)
-		} else {
-			return nil, IndexError{Code: 500, Message: err.Error()}
-		}
-	}
-	if rows.Err() != nil {
-		return nil, IndexError{Code: 500, Message: rows.Err().Error()}
-	}
-	return nfts, nil
-}
-
-func queryNFTTransfersImpl(query string, conn *pgxpool.Conn, settings RequestSettings) ([]NFTTransfer, error) {
-	ctx, cancel_ctx := context.WithTimeout(context.Background(), settings.Timeout)
-	defer cancel_ctx()
-	rows, err := conn.Query(ctx, query)
-	if err != nil {
-		return nil, IndexError{Code: 500, Message: err.Error()}
-	}
-	// select {
-	// case <-ctx.Done():
-	// 	return nil, fmt.Errorf("query timeout %v", settings.Timeout)
-	// default:
-	// }
-	defer rows.Close()
-
-	res := []NFTTransfer{}
-	for rows.Next() {
-		if loc, err := ScanNFTTransfer(rows); err == nil {
-			res = append(res, *loc)
-		} else {
-			return nil, IndexError{Code: 500, Message: err.Error()}
-		}
-	}
-	if rows.Err() != nil {
-		return nil, IndexError{Code: 500, Message: rows.Err().Error()}
-	}
-	return res, nil
-}
-
 func queryJettonMastersImpl(query string, conn *pgxpool.Conn, settings RequestSettings) ([]JettonMaster, error) {
 	ctx, cancel_ctx := context.WithTimeout(context.Background(), settings.Timeout)
 	defer cancel_ctx()
@@ -1623,9 +1359,6 @@ func collectAddressesFromAction(addr_list *map[string]bool, raw_action *RawActio
 	if v := raw_action.JettonTransferResponseDestination; v != nil {
 		(*addr_list)[(string)(*v)] = true
 	}
-	if v := raw_action.NFTTransferResponseDestination; v != nil {
-		(*addr_list)[(string)(*v)] = true
-	}
 	if v := raw_action.JettonSwapSender; v != nil {
 		(*addr_list)[(string)(*v)] = true
 	}
@@ -1721,10 +1454,7 @@ func queryEventsImpl(query string, conn *pgxpool.Conn, settings RequestSettings)
 				A.type, (A.ton_transfer_data).content, (A.ton_transfer_data).encrypted, A.value, A.amount,
 				(A.jetton_transfer_data).response_destination, (A.jetton_transfer_data).forward_amount, (A.jetton_transfer_data).query_id,
 				(A.jetton_transfer_data).custom_payload, (A.jetton_transfer_data).forward_payload, (A.jetton_transfer_data).comment,
-				(A.jetton_transfer_data).is_encrypted_comment, (A.nft_transfer_data).is_purchase, (A.nft_transfer_data).price,
-				(A.nft_transfer_data).query_id, (A.nft_transfer_data).custom_payload, (A.nft_transfer_data).forward_payload,
-				(A.nft_transfer_data).forward_amount, (A.nft_transfer_data).response_destination, (A.nft_transfer_data).nft_item_index,
-				(A.jetton_swap_data).dex, (A.jetton_swap_data).sender, ((A.jetton_swap_data).dex_incoming_transfer).amount,
+				(A.jetton_transfer_data).is_encrypted_comment,(A.jetton_swap_data).dex, (A.jetton_swap_data).sender, ((A.jetton_swap_data).dex_incoming_transfer).amount,
 				((A.jetton_swap_data).dex_incoming_transfer).asset, ((A.jetton_swap_data).dex_incoming_transfer).source,
 				((A.jetton_swap_data).dex_incoming_transfer).destination, ((A.jetton_swap_data).dex_incoming_transfer).source_jetton_wallet,
 				((A.jetton_swap_data).dex_incoming_transfer).destination_jetton_wallet, ((A.jetton_swap_data).dex_outgoing_transfer).amount,
@@ -1732,7 +1462,7 @@ func queryEventsImpl(query string, conn *pgxpool.Conn, settings RequestSettings)
 				((A.jetton_swap_data).dex_outgoing_transfer).destination, ((A.jetton_swap_data).dex_outgoing_transfer).source_jetton_wallet,
 				((A.jetton_swap_data).dex_outgoing_transfer).destination_jetton_wallet, (A.jetton_swap_data).peer_swaps,
 				(A.change_dns_record_data).key, (A.change_dns_record_data).value_schema, (A.change_dns_record_data).value,
-				(A.change_dns_record_data).flags, (A.nft_mint_data).nft_item_index,
+				(A.change_dns_record_data).flags,
 				A.success from actions as A where ` + filterByArray("A.trace_id", trace_id_list) + ` order by trace_id, start_lt, end_lt`
 			actions, err := queryRawActionsImpl(query, conn, settings)
 			if err != nil {
@@ -2093,137 +1823,6 @@ func (db *DbClient) QueryMessages(
 		}
 	}
 	return msgs, book, nil
-}
-
-func (db *DbClient) QueryNFTCollections(
-	nft_req NFTCollectionRequest,
-	lim_req LimitRequest,
-	settings RequestSettings,
-) ([]NFTCollection, AddressBook, error) {
-	query, err := buildNFTCollectionsQuery(nft_req, lim_req, settings)
-	if settings.DebugRequest {
-		log.Println("Debug query:", query)
-	}
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-
-	// read data
-	conn, err := db.Pool.Acquire(context.Background())
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-	defer conn.Release()
-
-	res, err := queryNFTCollectionsImpl(query, conn, settings)
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-
-	book := AddressBook{}
-	addr_list := []string{}
-	for _, t := range res {
-		addr_list = append(addr_list, string(t.Address))
-		if t.OwnerAddress != nil {
-			addr_list = append(addr_list, string(*t.OwnerAddress))
-		}
-	}
-	if len(addr_list) > 0 {
-		book, err = queryAddressBookImpl(addr_list, conn, settings)
-		if err != nil {
-			return nil, nil, IndexError{Code: 500, Message: err.Error()}
-		}
-	}
-	return res, book, nil
-}
-
-func (db *DbClient) QueryNFTItems(
-	nft_req NFTItemRequest,
-	lim_req LimitRequest,
-	settings RequestSettings,
-) ([]NFTItem, AddressBook, error) {
-	query, err := buildNFTItemsQuery(nft_req, lim_req, settings)
-	if settings.DebugRequest {
-		log.Println("Debug query:", query)
-	}
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-
-	// read data
-	conn, err := db.Pool.Acquire(context.Background())
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-	defer conn.Release()
-
-	res, err := queryNFTItemsWithCollectionsImpl(query, conn, settings)
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-
-	book := AddressBook{}
-	addr_list := []string{}
-	for _, t := range res {
-		addr_list = append(addr_list, string(t.Address))
-		if t.OwnerAddress != nil {
-			addr_list = append(addr_list, string(*t.OwnerAddress))
-		}
-	}
-	if len(addr_list) > 0 {
-		book, err = queryAddressBookImpl(addr_list, conn, settings)
-		if err != nil {
-			return nil, nil, IndexError{Code: 500, Message: err.Error()}
-		}
-	}
-	return res, book, nil
-}
-
-func (db *DbClient) QueryNFTTransfers(
-	transfer_req NFTTransferRequest,
-	utime_req UtimeRequest,
-	lt_req LtRequest,
-	lim_req LimitRequest,
-	settings RequestSettings,
-) ([]NFTTransfer, AddressBook, error) {
-	query, err := buildNFTTransfersQuery(transfer_req, utime_req, lt_req, lim_req, settings)
-	if settings.DebugRequest {
-		log.Println("Debug query:", query)
-	}
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-
-	// read data
-	conn, err := db.Pool.Acquire(context.Background())
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-	defer conn.Release()
-
-	res, err := queryNFTTransfersImpl(query, conn, settings)
-	if err != nil {
-		return nil, nil, IndexError{Code: 500, Message: err.Error()}
-	}
-
-	book := AddressBook{}
-	addr_list := []string{}
-	for _, t := range res {
-		addr_list = append(addr_list, string(t.NftItemAddress))
-		addr_list = append(addr_list, string(t.NftCollectionAddress))
-		addr_list = append(addr_list, string(t.OldOwner))
-		addr_list = append(addr_list, string(t.NewOwner))
-		if t.ResponseDestination != nil {
-			addr_list = append(addr_list, string(*t.ResponseDestination))
-		}
-	}
-	if len(addr_list) > 0 {
-		book, err = queryAddressBookImpl(addr_list, conn, settings)
-		if err != nil {
-			return nil, nil, IndexError{Code: 500, Message: err.Error()}
-		}
-	}
-	return res, book, nil
 }
 
 func (db *DbClient) QueryJettonMasters(

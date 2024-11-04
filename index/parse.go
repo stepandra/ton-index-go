@@ -300,17 +300,6 @@ func ParseRawAction(raw *RawAction) (*Action, error) {
 		details.Comment = raw.TonTransferContent
 		details.Encrypted = raw.TonTransferEncrypted
 		act.Details = &details
-	case "change_dns":
-		var details ActionDetailsChangeDns
-		details.Key = raw.ChangeDNSRecordKey
-		details.Value.SumType = raw.ChangeDNSRecordValueSchema
-		details.Value.DnsSmcAddress = raw.ChangeDNSRecordValue
-		details.Value.Flags = raw.ChangeDNSRecordFlags
-		act.Details = &details
-	case "delete_dns":
-		var details ActionDetailsDeleteDns
-		details.Key = raw.ChangeDNSRecordKey
-		act.Details = &details
 	case "election_deposit":
 		var details ActionDetailsElectionDeposit
 		details.StakeHolder = raw.Source
@@ -366,29 +355,6 @@ func ParseRawAction(raw *RawAction) (*Action, error) {
 		details.CustomPayload = raw.JettonTransferCustomPayload
 		details.ForwardPayload = raw.JettonTransferForwardPayload
 		details.ForwardAmount = raw.JettonTransferForwardAmount
-		act.Details = &details
-	case "nft_mint":
-		var details ActionDetailsNftMint
-		details.Owner = raw.Source
-		details.NftCollection = raw.Asset
-		details.NftItem = raw.AssetSecondary
-		details.NftItemIndex = raw.NFTMintNFTItemIndex
-		act.Details = &details
-	case "nft_transfer":
-		// TODO: asset = collection, asset_secondary = item, payload, forward_amount, response_dest
-		var details ActionDetailsNftTransfer
-		details.NftCollection = raw.Asset
-		details.NftItem = raw.AssetSecondary
-		details.NftItemIndex = raw.NFTTransferNFTItemIndex
-		details.OldOwner = raw.Source
-		details.NewOwner = raw.Destination
-		details.IsPurchase = raw.NFTTransferIsPurchase
-		details.Price = raw.NFTTransferPrice
-		details.QueryId = raw.NFTTransferQueryId
-		details.ResponseDestination = raw.NFTTransferResponseDestination
-		details.CustomPayload = raw.NFTTransferCustomPayload
-		details.ForwardPayload = raw.NFTTransferForwardPayload
-		details.ForwardAmount = raw.NFTTransferForwardAmount
 		act.Details = &details
 	case "tick_tock":
 		var details ActionDetailsTickTock
@@ -597,62 +563,6 @@ func ScanAccountBalance(row pgx.Row) (*AccountBalance, error) {
 		return nil, err
 	}
 	return &acst, nil
-}
-
-func ScanNFTCollection(row pgx.Row) (*NFTCollection, error) {
-	var res NFTCollection
-	err := row.Scan(&res.Address, &res.NextItemIndex, &res.OwnerAddress, &res.CollectionContent,
-		&res.DataHash, &res.CodeHash, &res.LastTransactionLt)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func ScanNFTItem(row pgx.Row) (*NFTItem, error) {
-	var res NFTItem
-	err := row.Scan(&res.Address, &res.Init, &res.Index, &res.CollectionAddress,
-		&res.OwnerAddress, &res.Content, &res.LastTransactionLt, &res.CodeHash, &res.DataHash)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func ScanNFTItemWithCollection(row pgx.Row) (*NFTItem, error) {
-	var res NFTItem
-	var col NFTCollectionNullable
-
-	err := row.Scan(&res.Address, &res.Init, &res.Index, &res.CollectionAddress,
-		&res.OwnerAddress, &res.Content, &res.LastTransactionLt, &res.CodeHash, &res.DataHash,
-		&col.Address, &col.NextItemIndex, &col.OwnerAddress, &col.CollectionContent,
-		&col.DataHash, &col.CodeHash, &col.LastTransactionLt)
-	if col.Address != nil {
-		res.Collection = new(NFTCollection)
-		res.Collection.Address = *col.Address
-		res.Collection.NextItemIndex = *col.NextItemIndex
-		res.Collection.OwnerAddress = col.OwnerAddress
-		res.Collection.CollectionContent = col.CollectionContent
-		res.Collection.DataHash = *col.DataHash
-		res.Collection.CodeHash = *col.CodeHash
-		res.Collection.LastTransactionLt = *col.LastTransactionLt
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func ScanNFTTransfer(row pgx.Row) (*NFTTransfer, error) {
-	var res NFTTransfer
-	err := row.Scan(&res.TransactionHash, &res.TransactionLt, &res.TransactionNow, &res.TransactionAborted,
-		&res.QueryId, &res.NftItemAddress, &res.NftItemIndex, &res.NftCollectionAddress,
-		&res.OldOwner, &res.NewOwner, &res.ResponseDestination, &res.CustomPayload,
-		&res.ForwardAmount, &res.ForwardPayload, &res.TraceId)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
 }
 
 func ScanJettonMaster(row pgx.Row) (*JettonMaster, error) {
